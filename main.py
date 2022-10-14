@@ -1,15 +1,13 @@
 import math
-
 import xlwt
 import requests
 import json
 from requests.auth import  HTTPBasicAuth
 
-
-url_0="http://open.timepill.net:80/api/users/my"
-url_2="http://open.timepill.net:80/api/notebooks/"
-url_1="http://open.timepill.net:80/api/notebooks/my"
-url_3="http://open.timepill.net:80/api/diaries/"
+user_url="http://open.timepill.net:80/api/users/my"
+notebook_url="http://open.timepill.net:80/api/notebooks/"
+notebook_list_url="http://open.timepill.net:80/api/notebooks/my"
+diary_url="http://open.timepill.net:80/api/diaries/"
 
 headers = {
             "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; MI 6 MIUI/V11.0.5.0.PCACNXM)",
@@ -18,31 +16,16 @@ headers = {
             "Accept-Encoding": "gzip"
 }
 
-def get_index_json(headers,url):
+# get user id
+def get_user_id(email, pwd, headers,url):
     res = requests.get(url=url, auth=HTTPBasicAuth(email, pwd), headers=headers)
     content = res.text
     decodejson = json.loads(content)  #将已编码的 JSON 字符串解码为 Python 对象，就是python解码json对象
-    return decodejson
-
-def get_user_id(decodejson):
-    id=decodejson['id']
+    id = decodejson['id']
     return id
 
-#账号密码
-id = None
-login_flag = False
-while not login_flag:
-    try:
-        email=input("输入账号")
-        pwd=input("输入密码")
-        decodejson=get_index_json(headers,url_0)
-        id=get_user_id(decodejson)
-        login_flag = True
-    except Exception:
-        print("账号密码输入错误")
-
-
-def get_user_notebooks(id,url):
+# get user notebook list
+def get_user_notebooks(url):
     diaries_basic_infos= []
     diaries_basic_info=[]
     key=0
@@ -60,9 +43,8 @@ def get_user_notebooks(id,url):
         diaries_basic_info=[]
         key=key+1
     return diaries_basic_infos
-diaries_basic_infos=get_user_notebooks(id,url_1)
-print(diaries_basic_infos)
 
+# get user diary
 def get_user_diaries(diaries_basic_infos,url):
     workbook = xlwt.Workbook(encoding='utf-8')  # 新建工作簿
     sheet1 = workbook.add_sheet("日记备份")  # 新建sheet
@@ -76,30 +58,28 @@ def get_user_diaries(diaries_basic_infos,url):
     ids=[]
     for diaries_basic_info in diaries_basic_infos:
         diaries_id=diaries_basic_info[0]
-        # print(diaries_id)
         diaries_ids.append(diaries_id)
-    # print(diaries_ids)
 
     for diaries_id in diaries_ids:
         res = requests.get(url=url+str(diaries_id)+'/diaries', auth=HTTPBasicAuth(email, pwd), headers=headers, params={"page":1})
         content = res.text
         decodejson = json.loads(content)  # 将已编码的 JSON 字符串解码为 Python 对象，就是python解码json对象
-        count=decodejson['count']
+        count = decodejson['count']
         total_pages = math.ceil(count / 20)
         page=1
-        while page<=total_pages:
+        while page <= total_pages:
             res = requests.get(url=url + str(diaries_id) + '/diaries', auth=HTTPBasicAuth(email, pwd), headers=headers,
                                params={"page": page})
             content = res.text
             decodejson = json.loads(content)  # 将已编码的 JSON 字符串解码为 Python 对象，就是python解码json对象
-            items=decodejson['items']
+            items = decodejson['items']
 
             for item in items:
-                id=item['id']
-                subject=item['notebook_subject']
-                content=item['content']
-                created_time=item['created']
-                img=item['photoUrl']
+                id = item['id']
+                subject = item['notebook_subject']
+                content = item['content']
+                created_time = item['created']
+                img = item['photoUrl']
                 ids.append(id)
                 sheet1.write(n, 0, subject)  # 第n行第1列数据
                 sheet1.write(n, 1, content)  # 第n行第2列数据
@@ -108,9 +88,23 @@ def get_user_diaries(diaries_basic_infos,url):
                 sheet1.write(n, 4, id)  # 第n行第4列数据
                 n = n + 1
             print(decodejson)
-            page=page+1
+            page = page+1
         workbook.save("日记.xls")  # 保存
     return ids
 
-ids=get_user_diaries(diaries_basic_infos, url_2)
+#账号密码
+id = None
+login_flag = False
+while not login_flag:
+    try:
+        email = input("输入账号")
+        pwd = input("输入密码")
+        id = get_user_id(email, pwd, headers, user_url)
+        login_flag = True
+    except Exception:
+        print("账号密码输入错误")
+
+diaries_basic_infos = get_user_notebooks(notebook_list_url)
+print(diaries_basic_infos)
+ids = get_user_diaries(diaries_basic_infos, notebook_url)
 input("完成! 按任意键退出")
