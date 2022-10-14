@@ -11,3 +11,5 @@
    `pip install -r requirement.txt`
 7. 启动 **main.py** 程序  
    `python main.py`
+   
+#### 感谢原始代码作者[Libra](http://www.timepill.net/people/100699220)
