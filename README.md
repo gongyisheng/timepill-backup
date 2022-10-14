@@ -13,5 +13,9 @@ mac/二次开发:
    `pip install -r requirement.txt`
 7. 启动 **main.py** 程序  
    `python main.py`
-   
+
 #### 感谢原始代码作者[Libra](http://www.timepill.net/people/100699220)
+
+### Todo 
+- 评论备份
+- 显示进度条 
