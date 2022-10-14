@@ -4,6 +4,7 @@ import time
 
 import requests
 from requests.auth import  HTTPBasicAuth
+from tqdm import tqdm
 import xlwt
 
 # use https instead of http to avoid security concerns
@@ -69,35 +70,54 @@ def get_user_notebooks(email, pwd, url):
         notebook_list.append(notebook_item)
     return notebook_list
 
+# total diary number of a notebook
+diary_count = -1
+
 # get user diary, it returns an iterator of diary items in a page 
 # 获取用户日记, 返回一个遍历一页日记的迭代器
 def get_user_diary_iter(email, pwd, url, page, fallback):
+    global diary_count
     _msg = call_api(email, pwd, url, fallback, params={"page": page})
+    diary_count = _msg["count"]
     if _msg is not None:
         diaries = _msg['items']
         for diary in diaries:
             diary_item = extract_key(diary, diary_extract_key)
-            print(diary_item)
             yield diary_item
 
 # save diaries in a notebook until the end. If error, save the progress to fallback
 # 保存日记本中的日记直到最后，如果保存失败，则在fallback列表中记录进度
 def save_notebook_diary(email, pwd, workbook, notebook_url, fallback_list, start_page=1):
+    global diary_count
     page = start_page
     is_end = False
+    t = None
+    rest_count = 0
     while not is_end:
         is_end = True
         for diary_item in get_user_diary_iter(email, pwd, notebook_url, page, fallback_list):
             workbook.save_diary(diary_item)
             is_end = False
+        if is_end:
+            break
+        if t is None:
+            t = tqdm(total=diary_count, desc=notebook_subject)
+            rest_count = diary_count
+        t.update(n=min(20, rest_count))
+        rest_count -= 20
         page += 1
+        
+# current notebook subject
+notebook_subject = None
 
 # back up function 尝试保存每一本日记并备份至excel, 如果失败，记录失败时的进度
 def backup(email, pwd, workbook, notebook_list, url):
-    notebook_id_list = [item[0] for item in notebook_list]
+    global notebook_subject
     fallback_list = [] # fallback list is designed to save failed requests temporarily
 
-    for notebook_id in notebook_id_list:
+    for item in notebook_list:
+        notebook_id = item[0]
+        notebook_subject = item[1]
         notebook_url = url + str(notebook_id) + '/diaries'
         save_notebook_diary(email, pwd, workbook, notebook_url, fallback_list)
 
