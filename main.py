@@ -1,3 +1,4 @@
+import os
 import math
 import xlwt
 import requests
@@ -8,6 +9,8 @@ user_url="http://open.timepill.net:80/api/users/my"
 notebook_url="http://open.timepill.net:80/api/notebooks/"
 notebook_list_url="http://open.timepill.net:80/api/notebooks/my"
 diary_url="http://open.timepill.net:80/api/diaries/"
+
+work_dir = os.getcwd()
 
 headers = {
             "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; MI 6 MIUI/V11.0.5.0.PCACNXM)",
@@ -89,7 +92,7 @@ def get_user_diaries(diaries_basic_infos,url):
                 n = n + 1
             print(decodejson)
             page = page+1
-        workbook.save("日记.xls")  # 保存
+        workbook.save(work_dir+"/日记.xls")  # 保存
     return ids
 
 #账号密码
