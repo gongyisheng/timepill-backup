@@ -1,7 +1,7 @@
 # timepill-backup
 胶囊日记备份程序
-windows: [exe文件地址](https://github.com/gongyisheng/timepill-backup/releases/download/alpha/timepill-backup.exe)
-mac/二次开发: 
+windows: [exe文件地址](https://github.com/gongyisheng/timepill-backup/releases/download/alpha/timepill-backup.exe)  
+mac/二次开发:   
 1. [下载python](https://www.python.org/)
 2. [下载git](https://git-scm.com/downloads)
 3. 打开一个命令行窗口（terminal）
