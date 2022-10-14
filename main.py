@@ -1,113 +1,164 @@
-import os
-import math
-import xlwt
-import requests
 import json
+import math
+import os
+import time
+
+import requests
 from requests.auth import  HTTPBasicAuth
+import xlwt
 
-user_url="http://open.timepill.net:80/api/users/my"
-notebook_url="http://open.timepill.net:80/api/notebooks/"
-notebook_list_url="http://open.timepill.net:80/api/notebooks/my"
-diary_url="http://open.timepill.net:80/api/diaries/"
+# use https instead of http to avoid security concerns
+# 使用https保证安全传输
+user_url="https://open.timepill.net/api/users/my"
+notebook_url="https://open.timepill.net/api/notebooks/"
+notebook_list_url="https://open.timepill.net/api/notebooks/my"
+diary_url="https://open.timepill.net/api/diaries/"
 
+# 工作目录路径
 work_dir = os.getcwd()
 
-headers = {
+request_header = {
             "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; MI 6 MIUI/V11.0.5.0.PCACNXM)",
             "Host": "open.timepill.net:80",
             "Connection": "Keep-Alive",
-            "Accept-Encoding": "gzip"
+            "Accept-Encoding": "gzip",
+            "Source": "TimepillBackup" # 标注source=backup，方便站长管理备份流量
 }
+excel_output_header = ["日记本", "内容", "创建时间", "图片链接", "日记id"]
 
-# get user id
-def get_user_id(email, pwd, headers,url):
-    res = requests.get(url=url, auth=HTTPBasicAuth(email, pwd), headers=headers)
-    content = res.text
-    decodejson = json.loads(content)  #将已编码的 JSON 字符串解码为 Python 对象，就是python解码json对象
-    id = decodejson['id']
+notebook_extract_key = ['id', 'subject', 'created']
+diary_extract_key = ['notebook_subject', 'content', 'created', 'photoUrl', 'id']
+
+# util function to extract key from dict
+# 从哈希表中按指定顺序提取key, 输出制定顺序value
+def extract_key(dict, key_list):
+    value_list = []
+    for key in key_list:
+        if key not in dict:
+            print(f"WARNING: Key [{key}] is not in the response dict: {dict}")
+        value_list.append(dict.get(key,""))
+    return value_list
+
+# generalized call api function 
+# 通用的api调用方法，调用错误会将失败请求保存至fallback(如有)
+def call_api(email, pwd, url, fallback=None, **kwargs):
+    try:
+        res = requests.get(url=url, auth=HTTPBasicAuth(email, pwd), headers=request_header, timeout=5, **kwargs) # max timeout = 5
+        content = res.text
+        content_decoded = json.loads(content)
+        time.sleep(0.5) # sleep for 0.5s to avoid sending too many request to server in a short time
+        return content_decoded
+    except Exception as e:
+        if fallback is not None:
+            fallback.append({"url": url, **kwargs})
+        print("Api调用错误, 原因: "+str(e))
+        return None
+
+# get user id 获取用户id
+def get_user_id(email, pwd, url):
+    msg = call_api(email, pwd, url)
+    id = msg['id']
     return id
 
-# get user notebook list
-def get_user_notebooks(url):
-    diaries_basic_infos= []
-    diaries_basic_info=[]
-    key=0
-    res = requests.get(url=url, auth=HTTPBasicAuth(email, pwd), headers=headers)
-    content = res.text
-    decodejson = json.loads(content)  # 将已编码的 JSON 字符串解码为 Python 对象，就是python解码json对象
-    for diaries_info in decodejson:
-        diaries_id=diaries_info['id']
-        diaries_subject=diaries_info['subject']
-        diaries_create_time=diaries_info['created']
-        diaries_basic_info.append(diaries_id)
-        diaries_basic_info.append(diaries_subject)
-        diaries_basic_info.append(diaries_create_time)
-        diaries_basic_infos.insert(key,diaries_basic_info)
-        diaries_basic_info=[]
-        key=key+1
-    return diaries_basic_infos
+# get user notebook list 获取日记列表
+def get_user_notebooks(email, pwd, url):
+    notebook_list = []
+    msg = call_api(email, pwd, url)
 
-# get user diary
-def get_user_diaries(diaries_basic_infos,url):
-    workbook = xlwt.Workbook(encoding='utf-8')  # 新建工作簿
-    sheet1 = workbook.add_sheet("日记备份")  # 新建sheet
-    sheet1.write(0, 0, "日记本")  # 第1行第1列数据
-    sheet1.write(0, 1, "内容")  # 第1行第2列数据
-    sheet1.write(0, 2, "创建时间")  # 第1行第3列数据
-    sheet1.write(0, 3, "图片链接")  # 第1行第4列数据
-    sheet1.write(0, 4, "日记id")  #第1行第5列数据
-    n = 1
-    diaries_ids=[]
-    ids=[]
-    for diaries_basic_info in diaries_basic_infos:
-        diaries_id=diaries_basic_info[0]
-        diaries_ids.append(diaries_id)
+    for notebook in msg:
+        notebook_item = extract_key(notebook, notebook_extract_key)
+        notebook_list.append(notebook_item)
+    return notebook_list
 
-    for diaries_id in diaries_ids:
-        res = requests.get(url=url+str(diaries_id)+'/diaries', auth=HTTPBasicAuth(email, pwd), headers=headers, params={"page":1})
-        content = res.text
-        decodejson = json.loads(content)  # 将已编码的 JSON 字符串解码为 Python 对象，就是python解码json对象
-        count = decodejson['count']
-        total_pages = math.ceil(count / 20)
-        page=1
-        while page <= total_pages:
-            res = requests.get(url=url + str(diaries_id) + '/diaries', auth=HTTPBasicAuth(email, pwd), headers=headers,
-                               params={"page": page})
-            content = res.text
-            decodejson = json.loads(content)  # 将已编码的 JSON 字符串解码为 Python 对象，就是python解码json对象
-            items = decodejson['items']
+# get user diary, it returns an iterator of diary items in a page 
+# 获取用户日记, 返回一个遍历一页日记的迭代器
+def get_user_diary_iter(email, pwd, url, page, fallback):
+    _msg = call_api(email, pwd, url, fallback, params={"page": page})
+    if _msg is not None:
+        diaries = _msg['items']
+        for diary in diaries:
+            diary_item = extract_key(diary, diary_extract_key)
+            print(diary_item)
+            yield diary_item
 
-            for item in items:
-                id = item['id']
-                subject = item['notebook_subject']
-                content = item['content']
-                created_time = item['created']
-                img = item['photoUrl']
-                ids.append(id)
-                sheet1.write(n, 0, subject)  # 第n行第1列数据
-                sheet1.write(n, 1, content)  # 第n行第2列数据
-                sheet1.write(n, 2, created_time)  # 第n行第3列数据
-                sheet1.write(n, 3, img)  # 第n行第4列数据
-                sheet1.write(n, 4, id)  # 第n行第4列数据
-                n = n + 1
-            print(decodejson)
-            page = page+1
-        workbook.save(work_dir+"/日记.xls")  # 保存
-    return ids
+# save diaries in a notebook until the end. If error, save the progress to fallback
+# 保存日记本中的日记直到最后，如果保存失败，则在fallback列表中记录进度
+def save_notebook_diary(email, pwd, workbook, notebook_url, fallback_list, start_page=1):
+    page = start_page
+    is_end = False
+    while not is_end:
+        is_end = True
+        for diary_item in get_user_diary_iter(email, pwd, notebook_url, page, fallback_list):
+            workbook.save_diary(diary_item)
+            is_end = False
+        page += 1
+
+# back up function 尝试保存每一本日记并备份至excel, 如果失败，记录失败时的进度
+def backup(email, pwd, workbook, notebook_list, url):
+    notebook_id_list = [item[0] for item in notebook_list]
+    fallback_list = [] # fallback list is designed to save failed requests temporarily
+
+    for notebook_id in notebook_id_list:
+        notebook_url = url + str(notebook_id) + '/diaries'
+        save_notebook_diary(email, pwd, workbook, notebook_url, fallback_list)
+
+    workbook.save_workbook()
+    return fallback_list
+
+# class for excel output 备份输出文件的抽象类
+class ExcelOutput(object):
+    def __init__(self, output_dir):
+        self.output_dir = output_dir
+        self.workbook = xlwt.Workbook(encoding='utf-8') # 新建excel文件
+        self.diary_sheet = self.workbook.add_sheet("日记备份")  # 新建sheet
+        self.max_row = 0
+    
+    def set_header(self, header):
+        for i in range(len(header)):
+            self.diary_sheet.write(0, i, header[i])
+        self.max_row = max(self.max_row, 1)
+
+    # write diary item to diary sheet
+    # 写入单条日记
+    def save_diary(self, item):
+        for i in range(len(item)):
+            self.diary_sheet.write(self.max_row, i, item[i])
+        self.max_row += 1
+    
+    # save workbook to disk
+    # 保存整个excel文件到磁盘
+    def save_workbook(self):
+        self.workbook.save(self.output_dir+"/日记.xls")
+
 
 #账号密码
 id = None
+email = None
+pwd = None
 login_flag = False
 while not login_flag:
     try:
         email = input("输入账号")
         pwd = input("输入密码")
-        id = get_user_id(email, pwd, headers, user_url)
+        id = get_user_id(email, pwd, user_url)
         login_flag = True
     except Exception:
         print("账号密码输入错误")
 
-diaries_basic_infos = get_user_notebooks(notebook_list_url)
-print(diaries_basic_infos)
-ids = get_user_diaries(diaries_basic_infos, notebook_url)
+notebook_list = get_user_notebooks(email, pwd, notebook_list_url)
+output = ExcelOutput(work_dir)
+output.set_header(excel_output_header)
+fallback_list = backup(email, pwd, output, notebook_list, notebook_url)
+
+# if fallbacks
+while len(fallback_list) != 0:
+    flag = input(f"有{len(fallback_list)}本日记保存(或部分保存)失败,是否重试 y/n ")
+    if flag.lower() != 'y':
+        break
+    _fallback_list = []
+    for fallback_item in fallback_list:
+        save_notebook_diary(email, pwd, output,fallback_item["url"], _fallback_list, fallback_item["params"]["page"])
+    output.save_workbook()
+    fallback_list = _fallback_list
+
 input("完成! 按任意键退出")
