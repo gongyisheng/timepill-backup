@@ -165,6 +165,7 @@ while not login_flag:
         print("账号密码输入错误")
 
 notebook_list = get_user_notebooks(email, pwd, notebook_list_url)
+print(f"您有{len(notebook_list)}本日记本准备备份")
 output = ExcelOutput(work_dir)
 output.set_header(excel_output_header)
 fallback_list = backup(email, pwd, output, notebook_list, notebook_url)
