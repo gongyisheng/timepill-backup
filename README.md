@@ -16,7 +16,7 @@ mac: [文件下载地址](https://github.com/gongyisheng/timepill-backup/release
 7. 启动 **main.py** 程序  
    `python main.py`
 
-#### 感谢原始代码作者[Libra](http://www.timepill.net/people/100699220), 项目后期由[小动物](http://timepill.net/people/100174502)维护
+#### 感谢原始代码作者[Libra](http://www.timepill.net/people/100699220), 项目后期由[小动物](http://timepill.net/people/100174502)维护, 联系方式 yisheng_gong@onmail.com
 
 ### Known Issue
 - 暂不支持评论备份: 这个功能可能导致服务器压力过大，请在[issue](https://github.com/gongyisheng/timepill-backup/issues/1)里投票让我知道需不需要实现该功能
