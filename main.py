@@ -79,12 +79,14 @@ diary_count = -1
 def get_user_diary_iter(email, pwd, url, page, fallback):
     global diary_count
     _msg = call_api(email, pwd, url, fallback, params={"page": page})
-    diary_count = _msg["count"]
     if _msg is not None:
+        diary_count = _msg["count"]
         diaries = _msg['items']
         for diary in diaries:
             diary_item = extract_key(diary, diary_extract_key)
             yield diary_item
+    else:
+        return []
 
 # save diaries in a notebook until the end. If error, save the progress to fallback
 # 保存日记本中的日记直到最后，如果保存失败，则在fallback列表中记录进度
