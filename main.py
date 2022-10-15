@@ -2,6 +2,7 @@ import json
 import os
 import time
 
+import pwinput
 import requests
 from requests.auth import  HTTPBasicAuth
 from tqdm import tqdm
@@ -150,7 +151,7 @@ class ExcelOutput(object):
         self.workbook.save(self.output_dir+"/日记.xls")
 
 
-#账号密码
+# login 登录
 id = None
 email = None
 pwd = None
@@ -158,7 +159,7 @@ login_flag = False
 while not login_flag:
     try:
         email = input("输入账号")
-        pwd = input("输入密码")
+        pwd = pwinput.pwinput(prompt="输入密码", mask='*')
         id = get_user_id(email, pwd, user_url)
         login_flag = True
     except Exception:
