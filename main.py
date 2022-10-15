@@ -8,6 +8,7 @@ from requests.auth import  HTTPBasicAuth
 from tqdm import tqdm
 import xlwt
 
+VERSION = "0.1.2"
 # use https instead of http to avoid security concerns
 # 使用https保证安全传输
 user_url="https://open.timepill.net/api/users/my"
@@ -57,18 +58,25 @@ def call_api(email, pwd, url, fallback=None, **kwargs):
 
 # get user id 获取用户id
 def get_user_id(email, pwd, url):
-    msg = call_api(email, pwd, url)
-    id = msg['id']
+    _msg = call_api(email, pwd, url)
+    id = _msg['id']
     return id
 
 # get user notebook list 获取日记列表
 def get_user_notebooks(email, pwd, url):
     notebook_list = []
-    msg = call_api(email, pwd, url)
+    _msg = call_api(email, pwd, url)
+    while _msg is None:
+        flag = input("获取日记本信息失败,是否重试 y/n ")
+        if flag != 'y':
+            return []
+        else:
+            _msg = call_api(email, pwd, url)
 
-    for notebook in msg:
+    for notebook in _msg:
         notebook_item = extract_key(notebook, notebook_extract_key)
         notebook_list.append(notebook_item)
+        
     return notebook_list
 
 # total diary number of a notebook
@@ -152,6 +160,10 @@ class ExcelOutput(object):
     def save_workbook(self):
         self.workbook.save(self.output_dir+"/日记.xls")
 
+# Welcome
+print(f"<timepill-backup> 胶囊日记备份程序 v{VERSION}")
+print(f"开发者: Libra, 小动物 | 联系方式见项目readme文档")
+print(f"------------------------------------------—---")
 
 # login 登录
 id = None
@@ -160,12 +172,12 @@ pwd = None
 login_flag = False
 while not login_flag:
     try:
-        email = input("输入账号")
+        email = input("输入邮箱")
         pwd = pwinput.pwinput(prompt="输入密码", mask='*')
         id = get_user_id(email, pwd, user_url)
         login_flag = True
     except Exception:
-        print("账号密码输入错误")
+        print("账号密码输入错误, 请重试")
 
 notebook_list = get_user_notebooks(email, pwd, notebook_list_url)
 print(f"您有{len(notebook_list)}本日记本准备备份")
