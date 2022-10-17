@@ -18,6 +18,7 @@ diary_url="https://open.timepill.net/api/diaries/"
 
 # 工作目录路径
 work_dir = os.getcwd()
+dir = os.path.join(work_dir, "日记.xls")
 
 request_header = {
             "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; MI 6 MIUI/V11.0.5.0.PCACNXM)",
@@ -158,7 +159,7 @@ class ExcelOutput(object):
     # save workbook to disk
     # 保存整个excel文件到磁盘
     def save_workbook(self):
-        self.workbook.save(self.output_dir+"/日记.xls")
+        self.workbook.save(self.output_dir)
 
 # Welcome
 print(f"<timepill-backup> 胶囊日记备份程序 v{VERSION}")
@@ -181,7 +182,7 @@ while not login_flag:
 
 notebook_list = get_user_notebooks(email, pwd, notebook_list_url)
 print(f"您有{len(notebook_list)}本日记本准备备份")
-output = ExcelOutput(work_dir)
+output = ExcelOutput(dir)
 output.set_header(excel_output_header)
 fallback_list = backup(email, pwd, output, notebook_list, notebook_url)
 
