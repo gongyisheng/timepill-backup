@@ -60,8 +60,14 @@ def call_api(email, pwd, url, fallback=None, **kwargs):
 # get user id 获取用户id
 def get_user_id(email, pwd, url):
     _msg = call_api(email, pwd, url)
-    id = _msg['id']
-    return id
+    if _msg is not None:
+        if "id" in _msg:
+            return _msg["id"]
+        elif "status_code" in _msg and _msg["status_code"] == 401:
+            print("账号密码输入错误, 请重试. 详细报错原因: "+_msg["message"])
+        else:
+            print("获取用户id失败, 原因: "+str(_msg))
+    return None
 
 # get user notebook list 获取日记列表
 def get_user_notebooks(email, pwd, url):
@@ -172,13 +178,10 @@ email = None
 pwd = None
 login_flag = False
 while not login_flag:
-    try:
-        email = input("输入邮箱")
-        pwd = pwinput.pwinput(prompt="输入密码", mask='*')
-        id = get_user_id(email, pwd, user_url)
-        login_flag = True
-    except Exception:
-        print("账号密码输入错误, 请重试")
+    email = input("输入邮箱")
+    pwd = pwinput.pwinput(prompt="输入密码", mask='*')
+    id = get_user_id(email, pwd, user_url)
+    login_flag = id is not None
 
 notebook_list = get_user_notebooks(email, pwd, notebook_list_url)
 print(f"您有{len(notebook_list)}本日记本准备备份")
