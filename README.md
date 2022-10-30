@@ -2,8 +2,8 @@
 胶囊日记备份程序，用于日记文本备份   
 **使用问题**请提[issue](https://github.com/gongyisheng/timepill-backup/issues/new)或邮件联系yisheng_gong@onmail.com
 ### 可执行程序下载 
-windows: [文件下载地址](https://github.com/gongyisheng/timepill-backup/releases/download/0.1.2/timepill-backup.exe)  
-mac: [文件下载地址](https://github.com/gongyisheng/timepill-backup/releases/download/0.1.2/timepill-backup)  
+windows: [文件下载地址](https://github.com/gongyisheng/timepill-backup/releases/download/0.1.3/timepill-backup-v0.1.3.exe)  
+mac: [文件下载地址](https://github.com/gongyisheng/timepill-backup/releases/download/0.1.3/timepill-backup-v0.1.3)  
 ### 二次开发:   
 1. [下载python](https://www.python.org/)
 2. [下载git](https://git-scm.com/downloads)
